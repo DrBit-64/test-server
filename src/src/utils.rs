@@ -85,3 +85,13 @@ pub async fn send_message_to_group(
     }
     Ok(())
 }
+
+pub async fn send_string_to_group(
+    message_str: String,
+    group_id: i64,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut data: HashMap<String, Value> = HashMap::new();
+    data.insert(String::from("text"), Value::String(message_str));
+    let message = Message::new(String::from("text"), data);
+    send_message_to_group(message, group_id).await
+}

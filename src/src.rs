@@ -114,9 +114,34 @@ async fn produce_daily_report_message(
     let mut message_str = String::from("以下为今天的水群榜：");
     let file_path = format!("./data/daily/{}.json", group_id);
     let data = read_json_file(&file_path)?;
-    for (k, v) in data.into_iter() {
+    let mut sorted_vec: Vec<(&String, &i64)> = data.iter().collect();
+    sorted_vec.sort_by(|a, b| b.1.cmp(a.1));
+    for (k, v) in sorted_vec {
         let user_id: i64 = k.parse()?;
-        println!("{} {} {}\n", k, v, user_id);
+        let name = get_group_member_name(group_id, user_id).await?;
+        message_str = format!("{}\n{}: {}", message_str, name, v);
+    }
+    let mut data: HashMap<String, Value> = HashMap::new();
+    data.insert(String::from("text"), Value::String(message_str));
+    Ok(Message::new(String::from("text"), data))
+}
+
+async fn produce_total_report_message(
+    group_id: i64,
+) -> Result<Message, Box<dyn std::error::Error>> {
+    let mut message_str = String::from("以下为水群总榜：");
+    let total_file_path = format!("./data/total/{}.json", group_id);
+    let mut total_data = read_json_file(&total_file_path)?;
+    let daily_file_path = format!("./data/daily/{}.json", group_id);
+    let daily_data = read_json_file(&daily_file_path)?;
+    for (k, v) in daily_data.into_iter() {
+        let counter = total_data.entry(k).or_insert(0);
+        *counter += v;
+    }
+    let mut sorted_vec: Vec<(&String, &i64)> = total_data.iter().collect();
+    sorted_vec.sort_by(|a, b| b.1.cmp(a.1));
+    for (k, v) in sorted_vec {
+        let user_id: i64 = k.parse()?;
         let name = get_group_member_name(group_id, user_id).await?;
         message_str = format!("{}\n{}: {}", message_str, name, v);
     }
@@ -139,16 +164,29 @@ fn add_cnt(group_id: i64, user_id: i64) {
     }
 }
 
-pub fn analyze_post_body(body: Bytes) {
+pub async fn analyze_post_body(body: Bytes) -> Result<(), Box<dyn std::error::Error>> {
     let body: HashMap<String, Value> =
         serde_json::from_slice(&body).expect("error when convert body to Hashmap");
     if let Some(post_type) = body.get("post_type") {
         if post_type == "message" && body.get("message_type").unwrap() == "group" {
             let group_id = body.get("group_id").unwrap().as_i64().unwrap();
             let user_id = body.get("user_id").unwrap().as_i64().unwrap();
-            add_cnt(group_id, user_id);
+            let raw_message = body.get("raw_message").unwrap().as_str().unwrap();
+            match raw_message {
+                "!!ping" => send_string_to_group(String::from("pong!!"), group_id).await?,
+                "!!daily rank" => {
+                    let message = produce_daily_report_message(group_id).await?;
+                    send_message_to_group(message, group_id).await?
+                }
+                "!!total rank" => {
+                    let message = produce_total_report_message(group_id).await?;
+                    send_message_to_group(message, group_id).await?;
+                }
+                _ => add_cnt(group_id, user_id),
+            }
         }
     }
+    Ok(())
 }
 
 pub async fn daily_work() -> Result<(), Box<dyn std::error::Error>> {

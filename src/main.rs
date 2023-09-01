@@ -9,7 +9,9 @@ mod src;
 async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     // 处理请求的逻辑
     let full_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
-    src::analyze_post_body(full_body);
+    if let Err(err) = src::analyze_post_body(full_body).await {
+        println!("error occured when handle_request: {}", err);
+    }
     let response = Response::new(Body::from("Hello, World!"));
     Ok(response)
 }
