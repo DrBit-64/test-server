@@ -3,8 +3,7 @@ use hyper::{Body, Request, Response, Server};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 
-pub mod src;
-use src::data;
+mod src;
 async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     // 处理请求的逻辑
     let full_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
@@ -15,7 +14,6 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible
 
 #[tokio::main]
 async fn main() {
-    data::transfer_data();
     // 创建一个绑定到本地地址的 TCP 监听器
     let addr = SocketAddr::from(([127, 0, 0, 1], 5701));
 
