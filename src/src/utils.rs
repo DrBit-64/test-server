@@ -13,6 +13,12 @@ pub struct Message {
     data: HashMap<String, Value>,
 }
 
+impl Message {
+    pub fn new(type_: String, data: HashMap<String, Value>) -> Message {
+        Message { type_, data }
+    }
+}
+
 #[derive(Serialize)]
 pub struct PostBodySendGroupMsg {
     group_id: i64,

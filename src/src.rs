@@ -5,8 +5,9 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Display;
 use std::fs;
+use std::io::Read;
 
-mod utils;
+pub mod utils;
 use utils::*;
 
 #[derive(Debug)]
@@ -32,7 +33,7 @@ fn transfer_daily_to_total(path: &str) {
     match read_json_file(path) {
         Ok(mut daily_data) => {
             let group_id = remove_prefix(path, "./data/daily"); //with ".json"
-            let total_path = "./data/total".to_owned() + group_id;
+            let total_path = format!("./data/total{}", group_id);
             let mut total_data: HashMap<String, i64> =
                 read_json_file(&total_path).expect("total data file open failed");
             for (k, v) in &daily_data {
@@ -67,7 +68,7 @@ fn transfer_data() {
     }
 }
 
-pub async fn get_group_member_name(
+async fn get_group_member_name(
     group_id: i64,
     user_id: i64,
 ) -> Result<String, Box<dyn std::error::Error>> {
@@ -95,7 +96,6 @@ pub async fn get_group_member_name(
     let mut body: HashMap<String, Value> = serde_json::from_value(json_value)?;
     let json_data: Value = body.remove("data").unwrap();
     let member_info: HashMap<String, Value> = serde_json::from_value(json_data)?;
-    println!("{:?}", member_info);
 
     if let Some(card) = member_info.get("card").and_then(|v| v.as_str()) {
         if !card.is_empty() {
@@ -108,8 +108,25 @@ pub async fn get_group_member_name(
     return Ok("".to_string());
 }
 
+async fn produce_daily_report_message(
+    group_id: i64,
+) -> Result<Message, Box<dyn std::error::Error>> {
+    let mut message_str = String::from("以下为今天的水群榜：");
+    let file_path = format!("./data/daily/{}.json", group_id);
+    let data = read_json_file(&file_path)?;
+    for (k, v) in data.into_iter() {
+        let user_id: i64 = k.parse()?;
+        println!("{} {} {}\n", k, v, user_id);
+        let name = get_group_member_name(group_id, user_id).await?;
+        message_str = format!("{}\n{}: {}", message_str, name, v);
+    }
+    let mut data: HashMap<String, Value> = HashMap::new();
+    data.insert(String::from("text"), Value::String(message_str));
+    Ok(Message::new(String::from("text"), data))
+}
+
 fn add_cnt(group_id: i64, user_id: i64) {
-    let file_path = "./data/daily/".to_owned() + &group_id.to_string() + ".json";
+    let file_path = format!("./data/daily/{}.json", group_id);
     match read_json_file(&file_path) {
         Ok(mut data) => {
             let counter = data.entry(user_id.to_string()).or_insert(0);
@@ -134,6 +151,15 @@ pub fn analyze_post_body(body: Bytes) {
     }
 }
 
-pub fn delayed_sending() {
-    todo!()
+pub async fn daily_work() -> Result<(), Box<dyn std::error::Error>> {
+    let mut file = open_or_create_file("./target.json")?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    let groups: Vec<i64> = serde_json::from_str(&contents)?;
+    for group_id in groups {
+        let message = produce_daily_report_message(group_id).await?;
+        send_message_to_group(message, group_id).await?;
+    }
+    transfer_data();
+    Ok(())
 }

@@ -2,7 +2,9 @@ use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
 use std::convert::Infallible;
 use std::net::SocketAddr;
-
+use std::thread;
+use std::time::{Duration, SystemTime};
+use tokio::runtime::Runtime;
 mod src;
 async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     // 处理请求的逻辑
@@ -14,18 +16,40 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible
 
 #[tokio::main]
 async fn main() {
-    // 创建一个绑定到本地地址的 TCP 监听器
-    let addr = SocketAddr::from(([127, 0, 0, 1], 5701));
+    let handle = thread::spawn(|| {
+        loop {
+            let now = SystemTime::now();
+            let current_time = now
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+            let target_time = current_time - (current_time % 86400) + 20 * 3600; // 4 * 3600 表示四点的秒数
+            let sleep_duration = if current_time < target_time {
+                Duration::from_secs(target_time - current_time)
+            } else {
+                Duration::from_secs(target_time + 86400 - current_time)
+            };
+            println!(
+                "before work:{} {} {:?}",
+                current_time, target_time, sleep_duration
+            );
+            thread::sleep(sleep_duration);
+            println!("work!!!");
+            let rt = Runtime::new().unwrap();
+            rt.block_on(async {
+                if let Err(err) = src::daily_work().await {
+                    println!("error when work daily:{}", err);
+                }
+            });
+        }
+    });
 
-    // 创建一个服务，用于处理每个连接
+    let addr = SocketAddr::from(([127, 0, 0, 1], 5701));
     let make_svc =
         make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(handle_request)) });
-
-    // 创建一个 HTTP 服务器，并绑定到监听器上
     let server = Server::bind(&addr).serve(make_svc);
-
-    // 启动服务器并等待它处理连接
-    if let Err(e) = server.await {
-        eprintln!("server error: {}", e);
+    if let Err(err) = server.await {
+        println!("server error: {}", err);
     }
+    let _ = handle.join().unwrap();
 }
