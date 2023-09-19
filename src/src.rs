@@ -116,10 +116,10 @@ async fn produce_daily_report_message(
     let data = read_json_file(&file_path)?;
     let mut sorted_vec: Vec<(&String, &i64)> = data.iter().collect();
     sorted_vec.sort_by(|a, b| b.1.cmp(a.1));
-    for (k, v) in sorted_vec {
+    for (idx, (k, v)) in sorted_vec.iter().enumerate() {
         let user_id: i64 = k.parse()?;
         let name = get_group_member_name(group_id, user_id).await?;
-        message_str = format!("{}\n{}: {}", message_str, name, v);
+        message_str = format!("{}\n{}.{}: {}", message_str, idx + 1, name, v);
     }
     let mut data: HashMap<String, Value> = HashMap::new();
     data.insert(String::from("text"), Value::String(message_str));
@@ -140,10 +140,10 @@ async fn produce_total_report_message(
     }
     let mut sorted_vec: Vec<(&String, &i64)> = total_data.iter().collect();
     sorted_vec.sort_by(|a, b| b.1.cmp(a.1));
-    for (k, v) in sorted_vec {
+    for (idx, (k, v)) in sorted_vec.iter().enumerate() {
         let user_id: i64 = k.parse()?;
         let name = get_group_member_name(group_id, user_id).await?;
-        message_str = format!("{}\n{}: {}", message_str, name, v);
+        message_str = format!("{}\n{}.{}: {}", message_str, idx + 1, name, v);
     }
     let mut data: HashMap<String, Value> = HashMap::new();
     data.insert(String::from("text"), Value::String(message_str));
@@ -194,7 +194,9 @@ pub async fn daily_work() -> Result<(), Box<dyn std::error::Error>> {
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
     let groups: Vec<i64> = serde_json::from_str(&contents)?;
+    println!("groups:{:?}", groups);
     for group_id in groups {
+        println!("group:{}", group_id);
         let message = produce_daily_report_message(group_id).await?;
         send_message_to_group(message, group_id).await?;
     }
