@@ -221,7 +221,7 @@ pub async fn get_wife_message(
         data
     });
     messages.push(text_message);
-    let _ = get_avatar(wife);
+    let _ = get_avatar(wife).await;
     let avatar_path = format!("data/avatar/{}.jpg", wife);
     let image_bytes = fs::read(avatar_path).expect("Failed to read image file");
     let base64_encoded = encode(&image_bytes);
