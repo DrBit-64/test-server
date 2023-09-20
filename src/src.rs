@@ -121,9 +121,7 @@ async fn produce_daily_report_message(
         let name = get_group_member_name(group_id, user_id).await?;
         message_str = format!("{}\n{}.{}: {}", message_str, idx + 1, name, v);
     }
-    let mut data: HashMap<String, Value> = HashMap::new();
-    data.insert(String::from("text"), Value::String(message_str));
-    Ok(Message::new(String::from("text"), data))
+    Ok(convert_string_to_message(message_str))
 }
 
 async fn produce_total_report_message(
@@ -145,9 +143,48 @@ async fn produce_total_report_message(
         let name = get_group_member_name(group_id, user_id).await?;
         message_str = format!("{}\n{}.{}: {}", message_str, idx + 1, name, v);
     }
+    Ok(convert_string_to_message(message_str))
+}
+
+fn convert_string_to_message(s: String) -> Message {
     let mut data: HashMap<String, Value> = HashMap::new();
-    data.insert(String::from("text"), Value::String(message_str));
-    Ok(Message::new(String::from("text"), data))
+    data.insert(String::from("text"), Value::String(s));
+    Message::new(String::from("text"), data)
+}
+
+fn get_pet_list() -> Result<String, Box<dyn std::error::Error>> {
+    let cur_dir = std::env::current_dir()?;
+    let grandparent_dir = cur_dir.parent().unwrap().parent().unwrap();
+    let pet_dir = grandparent_dir
+        .join("petpet")
+        .join("data")
+        .join("xmmt.dituon.petpet");
+    let mut pet_list = String::from("以下为可用的petpet指令");
+    if let Ok(entries) = fs::read_dir(pet_dir) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let folder_name = entry.file_name().to_str().unwrap_or("").to_string();
+                if folder_name == "fonts" {
+                    continue;
+                }
+                let path = entry.path();
+                let data_path = path.join("data.json");
+                let contents = fs::read_to_string(data_path)?;
+                let data: HashMap<String, Value> = serde_json::from_str(&contents)?;
+                // println!("data:{:?}\n", data);
+                // let names = data.get("alias").unwrap().as_array().unwrap();
+                if let Some(tmp) = data.get("alias") {
+                    let names = tmp.as_array().unwrap();
+                    pet_list = format!("{}\n{} ", pet_list, folder_name);
+                    for name in names {
+                        pet_list = format!("{} {}", pet_list, name.as_str().unwrap());
+                    }
+                }
+            }
+        }
+        return Ok(pet_list);
+    }
+    Ok(String::from(""))
 }
 
 fn add_cnt(group_id: i64, user_id: i64) {
@@ -181,6 +218,10 @@ pub async fn analyze_post_body(body: Bytes) -> Result<(), Box<dyn std::error::Er
                 "!!total rank" => {
                     let message = produce_total_report_message(group_id).await?;
                     send_message_to_group(message, group_id).await?;
+                }
+                "!!petpet list" => {
+                    let pet_list = get_pet_list()?;
+                    send_string_to_group(pet_list, group_id).await?;
                 }
                 _ => add_cnt(group_id, user_id),
             }
