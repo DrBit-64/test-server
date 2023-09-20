@@ -1,5 +1,5 @@
+use crate::io::*;
 use crate::produce::*;
-use crate::utils::*;
 use hyper::body::Bytes;
 use serde_json::{self, Value};
 use std::collections::HashMap;

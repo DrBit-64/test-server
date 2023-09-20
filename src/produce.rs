@@ -1,8 +1,15 @@
-use crate::utils::*;
+use crate::io::*;
+use crate::mytype::*;
 use hyper::{Body, Client, Method, Request};
 use serde_json::{self, Value};
 use std::collections::HashMap;
 use std::fs;
+
+fn convert_string_to_message(s: String) -> Message {
+    let mut data: HashMap<String, Value> = HashMap::new();
+    data.insert(String::from("text"), Value::String(s));
+    Message::new(String::from("text"), data)
+}
 
 pub async fn get_group_member_name(
     group_id: i64,
