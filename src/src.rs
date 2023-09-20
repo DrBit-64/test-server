@@ -116,10 +116,16 @@ async fn produce_daily_report_message(
     let data = read_json_file(&file_path)?;
     let mut sorted_vec: Vec<(&String, &i64)> = data.iter().collect();
     sorted_vec.sort_by(|a, b| b.1.cmp(a.1));
-    for (idx, (k, v)) in sorted_vec.iter().enumerate() {
+    let mut idx = 0;
+    for (k, v) in sorted_vec.iter() {
+        if idx >= 30 {
+            break;
+        }
         let user_id: i64 = k.parse()?;
-        let name = get_group_member_name(group_id, user_id).await?;
-        message_str = format!("{}\n{}.{}: {}", message_str, idx + 1, name, v);
+        if let Ok(name) = get_group_member_name(group_id, user_id).await {
+            message_str = format!("{}\n{}.{}: {}", message_str, idx + 1, name, v);
+            idx = idx + 1;
+        }
     }
     Ok(convert_string_to_message(message_str))
 }
@@ -138,10 +144,16 @@ async fn produce_total_report_message(
     }
     let mut sorted_vec: Vec<(&String, &i64)> = total_data.iter().collect();
     sorted_vec.sort_by(|a, b| b.1.cmp(a.1));
-    for (idx, (k, v)) in sorted_vec.iter().enumerate() {
+    let mut idx = 0;
+    for (k, v) in sorted_vec.iter() {
+        if idx >= 30 {
+            break;
+        }
         let user_id: i64 = k.parse()?;
-        let name = get_group_member_name(group_id, user_id).await?;
-        message_str = format!("{}\n{}.{}: {}", message_str, idx + 1, name, v);
+        if let Ok(name) = get_group_member_name(group_id, user_id).await {
+            message_str = format!("{}\n{}.{}: {}", message_str, idx + 1, name, v);
+            idx = idx + 1;
+        }
     }
     Ok(convert_string_to_message(message_str))
 }
