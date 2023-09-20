@@ -191,6 +191,7 @@ pub fn get_wife(group_id: i64, user_id: i64) -> Result<i64, Box<dyn std::error::
         .iter()
         .filter(|(_, v)| **v > 30)
         .map(|(x, _)| x.parse::<i64>().unwrap())
+        .filter(|x| *x != user_id && !wife_connection.values().any(|v| v == x))
         .collect();
     let mut rng = rand::thread_rng();
     let wife = active_members.choose(&mut rng).unwrap().to_owned();
