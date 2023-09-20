@@ -9,6 +9,7 @@ mod io;
 mod mytype;
 mod produce;
 mod src;
+mod test;
 async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     // 处理请求的逻辑
     let full_body = hyper::body::to_bytes(req.into_body()).await.unwrap();

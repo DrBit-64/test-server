@@ -37,7 +37,6 @@ fn transfer_data() {
             if let Ok(entry) = entry {
                 let path = entry.path();
                 if path.is_file() {
-                    // 处理文件
                     transfer_daily_to_total(path.to_str().unwrap());
                 }
             }
@@ -81,6 +80,10 @@ pub async fn analyze_post_body(body: Bytes) -> Result<(), Box<dyn std::error::Er
                     let pet_list = get_pet_list()?;
                     send_string_to_group(pet_list, group_id).await?;
                 }
+                "!!群友老婆" => {
+                    let messages = get_wife_message(group_id, user_id).await?;
+                    send_messages_to_group(messages, group_id).await?;
+                }
                 _ => add_cnt(group_id, user_id),
             }
         }
@@ -100,5 +103,6 @@ pub async fn daily_work() -> Result<(), Box<dyn std::error::Error>> {
         send_message_to_group(message, group_id).await?;
     }
     transfer_data();
+    clear_all_wife_data()?;
     Ok(())
 }

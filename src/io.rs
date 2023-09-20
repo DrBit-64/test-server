@@ -2,7 +2,7 @@ use crate::mytype::*;
 use hyper::{Body, Client, Method, Request};
 use serde_json::{self, Value};
 use std::collections::HashMap;
-use std::fs::{File, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io::prelude::*;
 use std::io::Read;
 
@@ -43,14 +43,14 @@ pub fn write_data_to_file(data: &HashMap<String, i64>, file_path: &str) -> std::
     Ok(())
 }
 
-pub async fn send_message_to_group(
-    message: Message,
+pub async fn send_messages_to_group(
+    messages: Vec<Message>,
     group_id: i64,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut post_body: HashMap<String, Value> = HashMap::new();
-    let message = serde_json::to_value(message)?;
+    let messages = serde_json::to_value(messages)?;
     let group_id = serde_json::to_value(group_id)?;
-    post_body.insert("message".to_string(), message);
+    post_body.insert("message".to_string(), messages);
     post_body.insert("group_id".to_string(), group_id);
     let json_data = serde_json::to_string(&post_body)?;
 
@@ -67,6 +67,15 @@ pub async fn send_message_to_group(
     Ok(())
 }
 
+pub async fn send_message_to_group(
+    message: Message,
+    group_id: i64,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut messages = Vec::new();
+    messages.push(message);
+    send_messages_to_group(messages, group_id).await
+}
+
 pub async fn send_string_to_group(
     message_str: String,
     group_id: i64,
@@ -75,4 +84,21 @@ pub async fn send_string_to_group(
     data.insert(String::from("text"), Value::String(message_str));
     let message = Message::new(String::from("text"), data);
     send_message_to_group(message, group_id).await
+}
+
+pub fn clear_all_wife_data() -> Result<(), Box<dyn std::error::Error>> {
+    let entries = fs::read_dir("./data/wife")?;
+    for entry in entries {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if path.is_file() {
+                let file_name = path.file_name().unwrap().to_str().unwrap();
+                let file_path = format!("./data/wife/{}", file_name);
+                let mut data = read_json_file(&file_path)?;
+                data.clear();
+                write_data_to_file(&data, &file_path)?;
+            }
+        }
+    }
+    Ok(())
 }
