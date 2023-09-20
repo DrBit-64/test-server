@@ -2,9 +2,29 @@ use hyper::{Body, Client, Method, Request};
 use serde::Serialize;
 use serde_json::{self, Value};
 use std::collections::HashMap;
+use std::fmt::{self, Display};
 use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
 use std::io::Read;
+
+#[derive(Debug)]
+pub struct GocqhttpError {
+    message: String,
+}
+
+impl std::error::Error for GocqhttpError {}
+
+impl Display for GocqhttpError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "MyError: {}", self.message)
+    }
+}
+
+impl GocqhttpError {
+    pub fn new(message: String) -> GocqhttpError {
+        GocqhttpError { message }
+    }
+}
 
 #[derive(Serialize)]
 pub struct Message {
@@ -94,4 +114,10 @@ pub async fn send_string_to_group(
     data.insert(String::from("text"), Value::String(message_str));
     let message = Message::new(String::from("text"), data);
     send_message_to_group(message, group_id).await
+}
+
+pub fn convert_string_to_message(s: String) -> Message {
+    let mut data: HashMap<String, Value> = HashMap::new();
+    data.insert(String::from("text"), Value::String(s));
+    Message::new(String::from("text"), data)
 }
