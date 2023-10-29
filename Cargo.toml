@@ -1,5 +1,5 @@
 [package]
-name = "group_msg_counts"
+name = "go-cqhttp-server"
 version = "0.1.0"
 edition = "2021"
 
