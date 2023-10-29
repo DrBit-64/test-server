@@ -1,5 +1,4 @@
 use crate::io::*;
-use crate::mytype::Message;
 use crate::produce::*;
 use hyper::body::Bytes;
 use serde_json::{self, Value};

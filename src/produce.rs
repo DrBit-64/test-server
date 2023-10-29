@@ -275,8 +275,8 @@ pub fn get_fortune_state(user_id: i64) -> FortuneState {
 
 pub fn discode_fortune_state(state: FortuneState) -> Message {
     let file_path = "./dict/fortune.json";
-    let FortuneData = read_fortune_data_from_json(file_path);
-    let mut message = String::new();
+    let fortune_data = read_fortune_data_from_json(file_path);
+    let mut message: String;
     message = format!(
         "你的今日运势为\n§{}§",
         match state.level {
@@ -290,23 +290,23 @@ pub fn discode_fortune_state(state: FortuneState) -> Message {
     match state.level {
         1 => {
             for i in state.index {
-                let data = FortuneData.get(i).unwrap();
+                let data = fortune_data.get(i).unwrap();
                 message = format!("{}\n宜：{} ({})", message, data.text, data.result1)
             }
         }
         5 => {
             for i in state.index {
-                let data = FortuneData.get(i).unwrap();
+                let data = fortune_data.get(i).unwrap();
                 message = format!("{}\n忌：{} ({})", message, data.text, data.result2);
             }
         }
         _ => {
             for (idx, i) in state.index.into_iter().enumerate() {
                 if idx <= 1 {
-                    let data = FortuneData.get(i).unwrap();
+                    let data = fortune_data.get(i).unwrap();
                     message = format!("{}\n宜：{} ({})", message, data.text, data.result1)
                 } else {
-                    let data = FortuneData.get(i).unwrap();
+                    let data = fortune_data.get(i).unwrap();
                     message = format!("{}\n忌：{} ({})", message, data.text, data.result2)
                 }
             }
