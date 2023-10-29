@@ -247,3 +247,84 @@ pub async fn get_wife_message(
     messages.push(text_message);
     Ok(messages)
 }
+
+pub fn get_fortune_state(user_id: i64) -> FortuneState {
+    let file_path = format!("./data/fortune/{}.json", user_id);
+    match read_fortune_state_from_json(&file_path) {
+        Ok(state) => state,
+        Err(_) => {
+            let level_choices = [1, 2, 3, 4, 5];
+            let weights = [1, 2, 3, 2, 1];
+            let mut rng = rand::thread_rng();
+            let level = level_choices
+                .choose_weighted(&mut rng, |item| weights[*item - 1])
+                .unwrap();
+
+            let fortune_data = read_fortune_data_from_json("./dict/fortune.json");
+            let len = fortune_data.len();
+            let mut rng = rand::thread_rng();
+            let mut index: Vec<_> = (0..len).collect();
+            index.shuffle(&mut rng);
+            index.truncate(if *level == 1 || *level == 5 { 2 } else { 4 });
+            let fortune_state = FortuneState::new(*level, index);
+            write_fortune_state_to_json(&file_path, &fortune_state);
+            fortune_state
+        }
+    }
+}
+
+pub fn discode_fortune_state(state: FortuneState) -> Message {
+    let file_path = "./dict/fortune.json";
+    let FortuneData = read_fortune_data_from_json(file_path);
+    let mut message = String::new();
+    message = format!(
+        "你的今日运势为\n§{}§",
+        match state.level {
+            1 => "大吉",
+            2 => "中吉",
+            3 => "中平",
+            4 => "中凶",
+            _ => "大凶",
+        }
+    );
+    match state.level {
+        1 => {
+            for i in state.index {
+                let data = FortuneData.get(i).unwrap();
+                message = format!("{}\n宜：{} ({})", message, data.text, data.result1)
+            }
+        }
+        5 => {
+            for i in state.index {
+                let data = FortuneData.get(i).unwrap();
+                message = format!("{}\n忌：{} ({})", message, data.text, data.result2);
+            }
+        }
+        _ => {
+            for (idx, i) in state.index.into_iter().enumerate() {
+                if idx <= 1 {
+                    let data = FortuneData.get(i).unwrap();
+                    message = format!("{}\n宜：{} ({})", message, data.text, data.result1)
+                } else {
+                    let data = FortuneData.get(i).unwrap();
+                    message = format!("{}\n忌：{} ({})", message, data.text, data.result2)
+                }
+            }
+        }
+    }
+    convert_string_to_message(message)
+}
+
+pub fn produce_fortune_message(user_id: i64) -> Vec<Message> {
+    let mut messages: Vec<Message> = Vec::new();
+    let at_message = Message::new(String::from("at"), {
+        let mut data: HashMap<String, Value> = HashMap::new();
+        data.insert(String::from("qq"), Value::String(user_id.to_string()));
+        data
+    });
+    messages.push(at_message);
+    let fortune_state = get_fortune_state(user_id);
+    let text_message = discode_fortune_state(fortune_state);
+    messages.push(text_message);
+    messages
+}

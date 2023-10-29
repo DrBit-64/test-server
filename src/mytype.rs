@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{self, Value};
 use std::collections::HashMap;
 use std::fmt::{self, Display};
@@ -22,7 +22,7 @@ impl GocqhttpError {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct Message {
     #[serde(rename = "type")]
     type_: String,
@@ -39,4 +39,23 @@ impl Message {
 pub struct PostBodySendGroupMsg {
     group_id: i64,
     message: Message,
+}
+
+#[derive(Serialize, Debug, Deserialize)]
+pub struct FortuneData {
+    pub text: String,
+    pub result1: String,
+    pub result2: String,
+}
+
+#[derive(Serialize, Debug, Deserialize)]
+pub struct FortuneState {
+    // 1-5: 大凶 凶 中平 吉 大吉
+    pub level: usize,
+    pub index: Vec<usize>,
+}
+impl FortuneState {
+    pub fn new(level: usize, index: Vec<usize>) -> FortuneState {
+        FortuneState { level, index }
+    }
 }

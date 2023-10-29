@@ -1,4 +1,5 @@
 use crate::io::*;
+use crate::mytype::Message;
 use crate::produce::*;
 use hyper::body::Bytes;
 use serde_json::{self, Value};
@@ -84,6 +85,10 @@ pub async fn analyze_post_body(body: Bytes) -> Result<(), Box<dyn std::error::Er
                     let messages = get_wife_message(group_id, user_id).await?;
                     send_messages_to_group(messages, group_id).await?;
                 }
+                "!!抽签" => {
+                    let messages = produce_fortune_message(user_id);
+                    send_messages_to_group(messages, group_id).await?;
+                }
                 _ => add_cnt(group_id, user_id),
             }
         }
@@ -104,5 +109,6 @@ pub async fn daily_work() -> Result<(), Box<dyn std::error::Error>> {
     }
     transfer_data();
     clear_all_wife_data()?;
+    clear_all_fortune_data()?;
     Ok(())
 }

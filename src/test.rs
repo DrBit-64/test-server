@@ -1,20 +1,44 @@
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::io::*;
+    use crate::mytype::*;
     use crate::produce::*;
-    #[tokio::test]
-    async fn test_get_avatar() {
-        let _ = get_avatar(328808246).await;
-        let _ = get_avatar(2148431973).await;
+    #[test]
+    fn test_read_fortune() {
+        println!("test_read_fortune");
+        let data = read_fortune_data_from_json("./dict/fortune.json");
+        println!("{:?}", data);
     }
     #[test]
-    fn test_get_wife() {
-        let _ = get_wife(863770345, 328808246);
-        let _ = get_wife(863770345, 1489952006);
-        let _ = get_wife(863770345, 2148431973);
+    fn test_read_fortune_state() {
+        println!("test_read_fortune_state");
+        let data = read_fortune_state_from_json("./data/fortune/123456.json");
+        println!("{:?}", data);
     }
     #[test]
-    fn test_clear_wife_data() {
-        let _ = clear_all_wife_data();
+    fn test_write_fortune_state() {
+        println!("test_write_fortune_state");
+        let data = FortuneState::new(1, vec![1, 33, 10, 2]);
+        write_fortune_state_to_json("./data/fortune/114514.json", &data);
+    }
+    #[test]
+    fn test_get_fortune_state() {
+        println!("test_get_fortune_state");
+        let data = get_fortune_state(114514);
+        println!("{:?}", data);
+        let data = get_fortune_state(12211023);
+        println!("{:?}", data);
+    }
+    #[test]
+    fn test_clear_fortune_data() {
+        let res = clear_all_fortune_data();
+        println!("{:?}", res);
+    }
+    #[test]
+    fn test_produce_fortune_message() {
+        let message = produce_fortune_message(114514);
+        println!("{:?}", message);
+        let message = produce_fortune_message(1919810);
+        println!("{:?}", message);
     }
 }
