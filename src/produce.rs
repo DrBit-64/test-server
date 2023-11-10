@@ -1,58 +1,16 @@
-use crate::io::*;
+use crate::file_io::*;
 use crate::mytype::*;
 use base64::encode;
-use hyper::{body::HttpBody, Body, Client, Method, Request};
+pub use chatgpt::*;
+use hyper::{body::HttpBody, Client};
 use rand::prelude::SliceRandom;
 use serde_json::{self, Value};
 use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
-
-fn convert_string_to_message(s: String) -> Message {
-    let mut data: HashMap<String, Value> = HashMap::new();
-    data.insert(String::from("text"), Value::String(s));
-    Message::new(String::from("text"), data)
-}
-
-pub async fn get_group_member_name(
-    group_id: i64,
-    user_id: i64,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let mut post_body: HashMap<String, i64> = HashMap::new();
-    post_body.insert("group_id".to_string(), group_id);
-    post_body.insert("user_id".to_string(), user_id);
-    let json_data = serde_json::to_string(&post_body)?;
-
-    let client = Client::new();
-    let request = Request::builder()
-        .method(Method::POST)
-        .uri("http://localhost:5700/get_group_member_info")
-        .header("Content-Type", "application/json")
-        .body(Body::from(json_data))
-        .unwrap();
-    let response = client.request(request).await?;
-    if response.status().is_client_error() {
-        return Err(Box::new(GocqhttpError::new(
-            "get group member info request failed".to_string(),
-        )));
-    }
-    let body_bytes = hyper::body::to_bytes(response.into_body()).await?;
-    let body_str = String::from_utf8(body_bytes.to_vec())?;
-    let json_value: Value = serde_json::from_str(&body_str)?;
-    let mut body: HashMap<String, Value> = serde_json::from_value(json_value)?;
-    let json_data: Value = body.remove("data").unwrap();
-    let member_info: HashMap<String, Value> = serde_json::from_value(json_data)?;
-
-    if let Some(card) = member_info.get("card").and_then(|v| v.as_str()) {
-        if !card.is_empty() {
-            return Ok(card.to_string());
-        }
-    }
-    if let Some(nickname) = member_info.get("nickname").and_then(|v| v.as_str()) {
-        return Ok(nickname.to_string());
-    }
-    return Ok("".to_string());
-}
+pub use utils::*;
+mod chatgpt;
+mod utils;
 
 pub async fn produce_daily_report_message(
     group_id: i64,
@@ -189,7 +147,7 @@ pub fn get_wife(group_id: i64, user_id: i64) -> Result<i64, Box<dyn std::error::
     let file_path = format!("./data/total/{}.json", group_id);
     let active_members: Vec<i64> = read_json_file(&file_path)?
         .iter()
-        .filter(|(_, v)| **v > 30)
+        .filter(|(_, v)| **v > 200)
         .map(|(x, _)| x.parse::<i64>().unwrap())
         .filter(|x| *x != user_id && !wife_connection.values().any(|v| v == x))
         .collect();

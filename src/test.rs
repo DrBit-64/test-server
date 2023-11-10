@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::io::*;
+    use crate::file_io::*;
     use crate::mytype::*;
     use crate::produce::*;
     #[test]
@@ -40,5 +40,19 @@ mod tests {
         println!("{:?}", message);
         let message = produce_fortune_message(1919810);
         println!("{:?}", message);
+    }
+}
+#[cfg(test)]
+mod async_tests {
+    use crate::produce::*;
+    use crate::web_io::*;
+    use tokio::test;
+    #[test]
+    async fn test_chat_gpt() {
+        let message_str = String::from("hello");
+        let gpt_request_body: crate::mytype::GPTRequestBody =
+            transfer_single_message_to_gpt_request_body(message_str);
+        let response_string = send_message_to_gpt(gpt_request_body).await;
+        println!("{}", response_string);
     }
 }

@@ -59,3 +59,53 @@ impl FortuneState {
         FortuneState { level, index }
     }
 }
+#[derive(Serialize, Debug, Deserialize)]
+pub struct GPTModel {
+    id: String,
+    name: String,
+    #[serde(rename = "maxLength")]
+    max_length: usize,
+    #[serde(rename = "tokenLimit")]
+    token_limit: usize,
+}
+
+impl GPTModel {
+    pub fn default() -> GPTModel {
+        GPTModel {
+            id: String::from("openchat_v3.2_mistral"),
+            name: String::from("OpenChat Aura"),
+            max_length: 3000,
+            token_limit: 65536,
+        }
+    }
+}
+#[derive(Serialize, Debug, Deserialize)]
+pub struct GPTMessage {
+    pub role: String,
+    pub content: String,
+}
+impl GPTMessage {
+    pub fn default(content: String) -> GPTMessage {
+        GPTMessage {
+            role: String::from("user"),
+            content,
+        }
+    }
+}
+#[derive(Serialize, Debug, Deserialize)]
+pub struct GPTRequestBody {
+    model: GPTModel,
+    prompt: String,
+    temprature: f64,
+    messages: Vec<GPTMessage>,
+}
+impl GPTRequestBody {
+    pub fn new(model: GPTModel, messages: Vec<GPTMessage>) -> GPTRequestBody {
+        GPTRequestBody {
+            model,
+            prompt: String::from(""),
+            temprature: 0.5,
+            messages,
+        }
+    }
+}

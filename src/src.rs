@@ -1,5 +1,6 @@
-use crate::io::*;
+use crate::file_io::*;
 use crate::produce::*;
+use crate::web_io::*;
 use hyper::body::Bytes;
 use serde_json::{self, Value};
 use std::collections::HashMap;
@@ -58,6 +59,59 @@ fn add_cnt(group_id: i64, user_id: i64) {
     }
 }
 
+fn parse_message(message: &str) -> (&str, Vec<&str>) {
+    let mut iter = message.split_whitespace();
+    let command = iter.next().unwrap();
+    let args: Vec<&str> = iter.collect();
+    (command, args)
+}
+
+async fn analyze_message(body: HashMap<String, Value>) {
+    let group_id = body.get("group_id").unwrap().as_i64().unwrap();
+    let user_id = body.get("user_id").unwrap().as_i64().unwrap();
+    let raw_message = body.get("raw_message").unwrap().as_str().unwrap();
+    if !raw_message.starts_with("!!") {
+        add_cnt(group_id, user_id);
+        return;
+    }
+    let (command, args) = parse_message(raw_message);
+    match command {
+        "!!ping" => send_string_to_group(String::from("pong!!"), group_id)
+            .await
+            .unwrap(),
+        "!!daily-rank" => {
+            let message = produce_daily_report_message(group_id).await.unwrap();
+            send_message_to_group(message, group_id).await.unwrap()
+        }
+        "!!total-rank" => {
+            let message = produce_total_report_message(group_id).await.unwrap();
+            send_message_to_group(message, group_id).await.unwrap();
+        }
+        "!!petpet-list" => {
+            let pet_list = get_pet_list().unwrap();
+            send_string_to_group(pet_list, group_id).await.unwrap();
+        }
+        "!!群友老婆" => {
+            let messages = get_wife_message(group_id, user_id).await.unwrap();
+            send_messages_to_group(messages, group_id).await.unwrap();
+        }
+        "!!抽签" => {
+            let messages = produce_fortune_message(user_id);
+            send_messages_to_group(messages, group_id).await.unwrap();
+        }
+        "!!chat" => {
+            let input_messages = args.join(" ");
+            let gpt_request_body: crate::mytype::GPTRequestBody =
+                transfer_single_message_to_gpt_request_body(input_messages);
+            let response_string = send_message_to_gpt(gpt_request_body).await;
+            send_string_to_group(response_string, group_id)
+                .await
+                .unwrap();
+        }
+        _ => add_cnt(group_id, user_id),
+    }
+}
+
 pub async fn analyze_post_body(body: Bytes) {
     tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
     println!("analyze post body finished");
@@ -65,35 +119,7 @@ pub async fn analyze_post_body(body: Bytes) {
         serde_json::from_slice(&body).expect("error when convert body to Hashmap");
     if let Some(post_type) = body.get("post_type") {
         if post_type == "message" && body.get("message_type").unwrap() == "group" {
-            let group_id = body.get("group_id").unwrap().as_i64().unwrap();
-            let user_id = body.get("user_id").unwrap().as_i64().unwrap();
-            let raw_message = body.get("raw_message").unwrap().as_str().unwrap();
-            match raw_message {
-                "!!ping" => send_string_to_group(String::from("pong!!"), group_id)
-                    .await
-                    .unwrap(),
-                "!!daily rank" => {
-                    let message = produce_daily_report_message(group_id).await.unwrap();
-                    send_message_to_group(message, group_id).await.unwrap()
-                }
-                "!!total rank" => {
-                    let message = produce_total_report_message(group_id).await.unwrap();
-                    send_message_to_group(message, group_id).await.unwrap();
-                }
-                "!!petpet list" => {
-                    let pet_list = get_pet_list().unwrap();
-                    send_string_to_group(pet_list, group_id).await.unwrap();
-                }
-                "!!群友老婆" => {
-                    let messages = get_wife_message(group_id, user_id).await.unwrap();
-                    send_messages_to_group(messages, group_id).await.unwrap();
-                }
-                "!!抽签" => {
-                    let messages = produce_fortune_message(user_id);
-                    send_messages_to_group(messages, group_id).await.unwrap();
-                }
-                _ => add_cnt(group_id, user_id),
-            }
+            analyze_message(body).await;
         }
     }
 }

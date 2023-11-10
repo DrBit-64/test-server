@@ -7,11 +7,12 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, SystemTime};
 use tokio::runtime::Runtime;
-mod io;
+mod file_io;
 mod mytype;
 mod produce;
 mod src;
 mod test;
+mod web_io;
 lazy_static! {
     static ref CHANNEL: Mutex<(Sender<Request<Body>>, Receiver<Request<Body>>)> = {
         let (sender, receiver) = bounded(100);
@@ -30,7 +31,7 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Error> {
 
 #[tokio::main]
 async fn main() {
-    let handle = thread::spawn(|| {
+    let timer_ticker = thread::spawn(|| {
         loop {
             let now = SystemTime::now();
             let current_time = now
@@ -58,7 +59,7 @@ async fn main() {
         }
     });
 
-    let handle2 = thread::spawn(|| {
+    let analyzer = thread::spawn(|| {
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
             loop {
@@ -78,6 +79,6 @@ async fn main() {
     if let Err(err) = server.await {
         println!("server error: {}", err);
     }
-    let _ = handle.join().unwrap();
-    let _ = handle2.join().unwrap();
+    let _ = timer_ticker.join().unwrap();
+    let _ = analyzer.join().unwrap();
 }
