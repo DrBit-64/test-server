@@ -1,7 +1,9 @@
+use crossbeam_channel::{bounded, Receiver, Sender};
 use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Request, Response, Server};
-use std::convert::Infallible;
+use hyper::{Body, Error, Request, Response, Server};
+use lazy_static::lazy_static;
 use std::net::SocketAddr;
+use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, SystemTime};
 use tokio::runtime::Runtime;
@@ -10,12 +12,18 @@ mod mytype;
 mod produce;
 mod src;
 mod test;
-async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+lazy_static! {
+    static ref CHANNEL: Mutex<(Sender<Request<Body>>, Receiver<Request<Body>>)> = {
+        let (sender, receiver) = bounded(100);
+        Mutex::new((sender, receiver))
+    };
+}
+
+async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Error> {
     // 处理请求的逻辑
     let full_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
-    if let Err(err) = src::analyze_post_body(full_body).await {
-        println!("error occured when handle_request: {}", err);
-    }
+    let sender = CHANNEL.lock().unwrap().0.clone();
+    sender.send(Request::new(Body::from(full_body))).unwrap();
     let response = Response::new(Body::from("Hello, World!"));
     Ok(response)
 }
@@ -50,12 +58,26 @@ async fn main() {
         }
     });
 
+    let handle2 = thread::spawn(|| {
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            loop {
+                let receiver = CHANNEL.lock().unwrap().1.clone();
+                let req = receiver.recv().unwrap();
+                tokio::spawn(async move {
+                    src::analyze_post_body(hyper::body::to_bytes(req.into_body()).await.unwrap())
+                        .await;
+                });
+            }
+        });
+    });
+
     let addr = SocketAddr::from(([127, 0, 0, 1], 5701));
-    let make_svc =
-        make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(handle_request)) });
+    let make_svc = make_service_fn(|_conn| async { Ok::<_, Error>(service_fn(handle_request)) });
     let server = Server::bind(&addr).serve(make_svc);
     if let Err(err) = server.await {
         println!("server error: {}", err);
     }
     let _ = handle.join().unwrap();
+    let _ = handle2.join().unwrap();
 }

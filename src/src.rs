@@ -58,7 +58,9 @@ fn add_cnt(group_id: i64, user_id: i64) {
     }
 }
 
-pub async fn analyze_post_body(body: Bytes) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn analyze_post_body(body: Bytes) {
+    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+    println!("analyze post body finished");
     let body: HashMap<String, Value> =
         serde_json::from_slice(&body).expect("error when convert body to Hashmap");
     if let Some(post_type) = body.get("post_type") {
@@ -67,32 +69,33 @@ pub async fn analyze_post_body(body: Bytes) -> Result<(), Box<dyn std::error::Er
             let user_id = body.get("user_id").unwrap().as_i64().unwrap();
             let raw_message = body.get("raw_message").unwrap().as_str().unwrap();
             match raw_message {
-                "!!ping" => send_string_to_group(String::from("pong!!"), group_id).await?,
+                "!!ping" => send_string_to_group(String::from("pong!!"), group_id)
+                    .await
+                    .unwrap(),
                 "!!daily rank" => {
-                    let message = produce_daily_report_message(group_id).await?;
-                    send_message_to_group(message, group_id).await?
+                    let message = produce_daily_report_message(group_id).await.unwrap();
+                    send_message_to_group(message, group_id).await.unwrap()
                 }
                 "!!total rank" => {
-                    let message = produce_total_report_message(group_id).await?;
-                    send_message_to_group(message, group_id).await?;
+                    let message = produce_total_report_message(group_id).await.unwrap();
+                    send_message_to_group(message, group_id).await.unwrap();
                 }
                 "!!petpet list" => {
-                    let pet_list = get_pet_list()?;
-                    send_string_to_group(pet_list, group_id).await?;
+                    let pet_list = get_pet_list().unwrap();
+                    send_string_to_group(pet_list, group_id).await.unwrap();
                 }
                 "!!群友老婆" => {
-                    let messages = get_wife_message(group_id, user_id).await?;
-                    send_messages_to_group(messages, group_id).await?;
+                    let messages = get_wife_message(group_id, user_id).await.unwrap();
+                    send_messages_to_group(messages, group_id).await.unwrap();
                 }
                 "!!抽签" => {
                     let messages = produce_fortune_message(user_id);
-                    send_messages_to_group(messages, group_id).await?;
+                    send_messages_to_group(messages, group_id).await.unwrap();
                 }
                 _ => add_cnt(group_id, user_id),
             }
         }
     }
-    Ok(())
 }
 
 pub async fn daily_work() -> Result<(), Box<dyn std::error::Error>> {
