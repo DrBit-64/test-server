@@ -113,8 +113,6 @@ async fn analyze_message(body: HashMap<String, Value>) {
 }
 
 pub async fn analyze_post_body(body: Bytes) {
-    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-    println!("analyze post body finished");
     let body: HashMap<String, Value> =
         serde_json::from_slice(&body).expect("error when convert body to Hashmap");
     if let Some(post_type) = body.get("post_type") {
