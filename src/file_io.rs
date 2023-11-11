@@ -80,6 +80,7 @@ pub fn read_dialogue_data_from_json(file_path: &str) -> Vec<ChatMessage> {
 pub fn write_dialogue_data_to_json(file_path: &str, data: &Vec<ChatMessage>) {
     let mut file = open_or_create_file(file_path).unwrap();
     let json_data = serde_json::to_string(&data).unwrap();
+    file.set_len(0).unwrap();
     file.write_all(json_data.as_bytes()).unwrap();
 }
 

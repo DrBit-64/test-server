@@ -22,7 +22,12 @@ pub fn transfer_messages_to_gpt_request_body(messages: Vec<ChatMessage>) -> GPTR
 fn storage_chat_message(file_path: &str, new_message: ChatMessage, max_length_limit: usize) {
     let mut data = read_dialogue_data_from_json(file_path);
     data.push(new_message);
-    while data.iter().map(|x| x.content.len()).sum::<usize>() > max_length_limit {
+    while data
+        .iter()
+        .map(|x| x.content.chars().count())
+        .sum::<usize>()
+        > max_length_limit
+    {
         data.remove(0);
     }
     write_dialogue_data_to_json(file_path, &data);
