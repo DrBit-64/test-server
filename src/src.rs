@@ -119,7 +119,7 @@ async fn analyze_message(mut body: HashMap<String, Value>) {
         }
         "!!chat" => {
             let input_messages = args.join(" ");
-            let response_string = normal_chat_to_gpt(input_messages, group_id, user_id).await;
+            let response_string = normal_chat_to_gpt(input_messages, user_id).await;
             send_string_to_group(response_string, group_id)
                 .await
                 .unwrap();
@@ -137,6 +137,10 @@ async fn analyze_message(mut body: HashMap<String, Value>) {
             send_string_to_group(String::from("已加载猫猫人设"), group_id)
                 .await
                 .unwrap();
+        }
+        "!!summarize" => {
+            let messages = summarize_qq_message_via_gpt(group_id).await;
+            send_string_to_group(messages, group_id).await.unwrap();
         }
         _ => {
             add_cnt(group_id, user_id);

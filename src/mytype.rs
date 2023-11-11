@@ -94,9 +94,6 @@ impl ChatMessage {
     pub fn new(role: String, content: String) -> ChatMessage {
         ChatMessage { role, content }
     }
-    pub fn content_length(&self) -> usize {
-        self.content.len()
-    }
 }
 #[derive(Serialize, Debug, Deserialize)]
 pub struct GPTRequestBody {

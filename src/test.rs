@@ -57,19 +57,18 @@ mod tests {
 #[cfg(test)]
 mod async_tests {
     use crate::produce::*;
-    use crate::web_io::*;
     use tokio::test;
     #[test]
     async fn test_normal_chat_to_gpt() {
         let messages = String::from("");
-        println!("{}", normal_chat_to_gpt(messages, 0, 0).await);
+        println!("{}", normal_chat_to_gpt(messages, 0).await);
     }
     #[test]
     async fn test_load_gpt_character() {
         let file_path = "./dict/gpt-neko.json";
         load_gpt_chat_characters(file_path, 1);
         let message = String::from("你好，请让我摸摸尾巴");
-        println!("{}", normal_chat_to_gpt(message, 1, 1).await);
+        println!("{}", normal_chat_to_gpt(message, 1).await);
     }
     #[test]
     async fn test_summarize_qq_message_via_gpt() {

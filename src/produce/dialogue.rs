@@ -1,7 +1,7 @@
 use crate::file_io::{
     clear_dailogue_data, read_dialogue_data_from_json, write_dialogue_data_to_json,
 };
-use crate::mytype::{ChatMessage, GPTModel, GPTRequestBody, Message};
+use crate::mytype::{ChatMessage, GPTModel, GPTRequestBody};
 use crate::produce::get_group_member_name;
 
 pub fn transfer_single_string_to_gpt_request_body(message: String) -> GPTRequestBody {
@@ -67,7 +67,7 @@ pub fn clear_gpt_chat_message(user_id: i64) {
     clear_chat_message(&file_path);
 }
 
-pub async fn normal_chat_to_gpt(messages: String, user_id: i64, group_id: i64) -> String {
+pub async fn normal_chat_to_gpt(messages: String, user_id: i64) -> String {
     let new_message = ChatMessage::default(messages.clone());
     let history_message = get_gpt_message_from_file(user_id);
     let mut messages = history_message;

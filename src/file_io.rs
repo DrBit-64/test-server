@@ -84,7 +84,7 @@ pub fn write_dialogue_data_to_json(file_path: &str, data: &Vec<ChatMessage>) {
 }
 
 pub fn clear_dailogue_data(file_path: &str) {
-    let mut file = open_or_create_file(file_path).unwrap();
+    let file = open_or_create_file(file_path).unwrap();
     file.set_len(0).unwrap();
 }
 
