@@ -1,3 +1,6 @@
+use tokio::join;
+use tokio::time::{sleep, Duration};
+
 use crate::file_io::{
     clear_dailogue_data, read_dialogue_data_from_json, write_dialogue_data_to_json,
 };
@@ -73,15 +76,16 @@ pub async fn normal_chat_to_gpt(messages: String, user_id: i64) -> String {
     let mut messages = history_message;
     messages.push(new_message.clone());
     let request_body = transfer_messages_to_gpt_request_body(messages);
-    let response_string = crate::web_io::send_message_to_gpt(request_body).await;
     storage_gpt_message_to_file(new_message, user_id);
+    let response_string = crate::web_io::send_message_to_gpt(request_body);
+    let sleep_handler = sleep(Duration::from_secs(2));
+    let (response_string, _) = join!(response_string, sleep_handler);
     storage_gpt_message_to_file(
         ChatMessage::new(String::from("assistant"), response_string.clone()),
         user_id,
     );
     response_string
 }
-
 pub fn load_gpt_chat_characters(source_file_path: &str, user_id: i64) {
     let source_messages = read_dialogue_data_from_json(source_file_path);
     for message in source_messages {
