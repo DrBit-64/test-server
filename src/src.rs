@@ -67,7 +67,8 @@ async fn parse_qq_message_to_string(messages: &Vec<Message>, group_id: i64) -> S
             let content = message.data.get("text").unwrap().as_str().unwrap();
             result = format!("{}{} ", result, content);
         } else if message.type_ == String::from("at") {
-            let at_id = message.data.get("qq").unwrap().as_i64().unwrap();
+            let at_id = message.data.get("qq").unwrap().as_str().unwrap();
+            let at_id = at_id.parse::<i64>().unwrap();
             let at_name = get_group_member_name(group_id, at_id).await.unwrap();
             result = format!("{}@{} ", result, at_name);
         }
