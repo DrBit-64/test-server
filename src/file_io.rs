@@ -66,6 +66,28 @@ pub fn write_fortune_state_to_json(file_path: &str, state: &FortuneState) {
     file.write_all(json_data.as_bytes()).unwrap();
 }
 
+pub fn read_dialogue_data_from_json(file_path: &str) -> Vec<ChatMessage> {
+    let mut file = open_or_create_file(file_path).unwrap();
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).unwrap();
+    if contents.is_empty() {
+        return Vec::new();
+    }
+    let data: Vec<ChatMessage> = serde_json::from_str(&contents).unwrap();
+    data
+}
+
+pub fn write_dialogue_data_to_json(file_path: &str, data: &Vec<ChatMessage>) {
+    let mut file = open_or_create_file(file_path).unwrap();
+    let json_data = serde_json::to_string(&data).unwrap();
+    file.write_all(json_data.as_bytes()).unwrap();
+}
+
+pub fn clear_dailogue_data(file_path: &str) {
+    let mut file = open_or_create_file(file_path).unwrap();
+    file.set_len(0).unwrap();
+}
+
 pub fn clear_all_wife_data() -> Result<(), Box<dyn std::error::Error>> {
     let entries = fs::read_dir("./data/wife")?;
     for entry in entries {

@@ -3,6 +3,7 @@ mod tests {
     use crate::file_io::*;
     use crate::mytype::*;
     use crate::produce::*;
+    use crate::src::parse_message;
     #[test]
     fn test_read_fortune() {
         println!("test_read_fortune");
@@ -41,6 +42,17 @@ mod tests {
         let message = produce_fortune_message(1919810);
         println!("{:?}", message);
     }
+    #[test]
+    fn test_parse_message() {
+        let string = String::from("hello world");
+        println!("{:?}", parse_message(&string));
+        let string = String::from("");
+        println!("{:?}", parse_message(&string));
+    }
+    #[test]
+    fn test_clear_gpt_chat_message() {
+        clear_gpt_chat_message(0);
+    }
 }
 #[cfg(test)]
 mod async_tests {
@@ -48,11 +60,20 @@ mod async_tests {
     use crate::web_io::*;
     use tokio::test;
     #[test]
-    async fn test_chat_gpt() {
-        let message_str = String::from("hello");
-        let gpt_request_body: crate::mytype::GPTRequestBody =
-            transfer_single_message_to_gpt_request_body(message_str);
-        let response_string = send_message_to_gpt(gpt_request_body).await;
-        println!("{}", response_string);
+    async fn test_normal_chat_to_gpt() {
+        let messages = String::from("");
+        println!("{}", normal_chat_to_gpt(messages, 0, 0).await);
+    }
+    #[test]
+    async fn test_load_gpt_character() {
+        let file_path = "./dict/gpt-neko.json";
+        load_gpt_chat_characters(file_path, 1);
+        let message = String::from("你好，请让我摸摸尾巴");
+        println!("{}", normal_chat_to_gpt(message, 1, 1).await);
+    }
+    #[test]
+    async fn test_summarize_qq_message_via_gpt() {
+        let message = summarize_qq_message_via_gpt(0).await;
+        println!("{}", message);
     }
 }

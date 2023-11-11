@@ -1,7 +1,7 @@
 use crate::file_io::*;
 use crate::mytype::*;
 use base64::encode;
-pub use chatgpt::*;
+pub use dialogue::*;
 use hyper::{body::HttpBody, Client};
 use rand::prelude::SliceRandom;
 use serde_json::{self, Value};
@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
 pub use utils::*;
-mod chatgpt;
+mod dialogue;
 mod utils;
 
 pub async fn produce_daily_report_message(

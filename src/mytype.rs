@@ -22,11 +22,11 @@ impl GocqhttpError {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
     #[serde(rename = "type")]
-    type_: String,
-    data: HashMap<String, Value>,
+    pub type_: String,
+    pub data: HashMap<String, Value>,
 }
 
 impl Message {
@@ -79,17 +79,23 @@ impl GPTModel {
         }
     }
 }
-#[derive(Serialize, Debug, Deserialize)]
-pub struct GPTMessage {
+#[derive(Serialize, Debug, Deserialize, Clone)]
+pub struct ChatMessage {
     pub role: String,
     pub content: String,
 }
-impl GPTMessage {
-    pub fn default(content: String) -> GPTMessage {
-        GPTMessage {
+impl ChatMessage {
+    pub fn default(content: String) -> ChatMessage {
+        ChatMessage {
             role: String::from("user"),
             content,
         }
+    }
+    pub fn new(role: String, content: String) -> ChatMessage {
+        ChatMessage { role, content }
+    }
+    pub fn content_length(&self) -> usize {
+        self.content.len()
     }
 }
 #[derive(Serialize, Debug, Deserialize)]
@@ -97,10 +103,10 @@ pub struct GPTRequestBody {
     model: GPTModel,
     prompt: String,
     temprature: f64,
-    messages: Vec<GPTMessage>,
+    messages: Vec<ChatMessage>,
 }
 impl GPTRequestBody {
-    pub fn new(model: GPTModel, messages: Vec<GPTMessage>) -> GPTRequestBody {
+    pub fn new(model: GPTModel, messages: Vec<ChatMessage>) -> GPTRequestBody {
         GPTRequestBody {
             model,
             prompt: String::from(""),

@@ -1,4 +1,5 @@
 use crate::file_io::*;
+use crate::mytype::*;
 use crate::produce::*;
 use crate::web_io::*;
 use hyper::body::Bytes;
@@ -59,22 +60,39 @@ fn add_cnt(group_id: i64, user_id: i64) {
     }
 }
 
-fn parse_message(message: &str) -> (&str, Vec<&str>) {
+async fn parse_qq_message_to_string(messages: &Vec<Message>, group_id: i64) -> String {
+    let mut result = String::new();
+    for message in messages {
+        if message.type_ == String::from("text") {
+            let content = message.data.get("text").unwrap().as_str().unwrap();
+            result = format!("{}{} ", result, content);
+        } else if message.type_ == String::from("at") {
+            let at_id = message.data.get("qq").unwrap().as_i64().unwrap();
+            let at_name = get_group_member_name(group_id, at_id).await.unwrap();
+            result = format!("{}@{} ", result, at_name);
+        }
+    }
+    result
+}
+
+pub fn parse_message(message: &str) -> (&str, Vec<&str>) {
     let mut iter = message.split_whitespace();
     let command = iter.next().unwrap();
     let args: Vec<&str> = iter.collect();
     (command, args)
 }
 
-async fn analyze_message(body: HashMap<String, Value>) {
+async fn analyze_message(mut body: HashMap<String, Value>) {
     let group_id = body.get("group_id").unwrap().as_i64().unwrap();
     let user_id = body.get("user_id").unwrap().as_i64().unwrap();
-    let raw_message = body.get("raw_message").unwrap().as_str().unwrap();
-    if !raw_message.starts_with("!!") {
+    let array_messages = body.remove("message").unwrap();
+    let array_messages: Vec<Message> = serde_json::from_value(array_messages).unwrap();
+    let message_string = parse_qq_message_to_string(&array_messages, group_id).await;
+    if message_string.is_empty() {
         add_cnt(group_id, user_id);
         return;
     }
-    let (command, args) = parse_message(raw_message);
+    let (command, args) = parse_message(&message_string);
     match command {
         "!!ping" => send_string_to_group(String::from("pong!!"), group_id)
             .await
@@ -101,14 +119,30 @@ async fn analyze_message(body: HashMap<String, Value>) {
         }
         "!!chat" => {
             let input_messages = args.join(" ");
-            let gpt_request_body: crate::mytype::GPTRequestBody =
-                transfer_single_message_to_gpt_request_body(input_messages);
-            let response_string = send_message_to_gpt(gpt_request_body).await;
+            let response_string = normal_chat_to_gpt(input_messages, group_id, user_id).await;
             send_string_to_group(response_string, group_id)
                 .await
                 .unwrap();
+            add_cnt(group_id, user_id);
         }
-        _ => add_cnt(group_id, user_id),
+        "!!chat-clear" => {
+            clear_gpt_chat_message(user_id);
+            send_string_to_group(String::from("聊天记录已清空"), group_id)
+                .await
+                .unwrap();
+        }
+        "!!chat-load-neko" => {
+            let file_path = "./dict/gpt-neko.json";
+            load_gpt_chat_characters(file_path, user_id);
+            send_string_to_group(String::from("已加载猫猫人设"), group_id)
+                .await
+                .unwrap();
+        }
+        _ => {
+            add_cnt(group_id, user_id);
+            let messages = format!("{} {}", command, args.join(" "));
+            storage_qq_message_to_file(messages, group_id, user_id).await;
+        }
     }
 }
 
