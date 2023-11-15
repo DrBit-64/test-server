@@ -27,6 +27,7 @@ fn storage_chat_message(file_path: &str, new_message: ChatMessage, max_length_li
         .map(|x| x.content.chars().count())
         .sum::<usize>()
         > max_length_limit
+        || data.iter().count() > 200
     {
         data.remove(0);
     }
