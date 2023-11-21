@@ -38,8 +38,11 @@ fn clear_chat_message(file_path: &str) {
     clear_dailogue_data(file_path);
 }
 
-fn transfer_chat_message_to_string(data: &Vec<ChatMessage>) -> String {
+pub fn transfer_chat_message_to_string(data: &Vec<ChatMessage>, cnt: usize) -> String {
     let mut result = String::new();
+    let len = data.len();
+    let last_n_element = if len > cnt { cnt } else { len };
+    let data = &data[len - last_n_element..len];
     for message in data {
         result = format!("{}{}:{}\n", result, message.role, message.content);
     }
@@ -99,14 +102,14 @@ pub fn load_gpt_chat_characters(source_file_path: &str, user_id: i64) {
     }
 }
 
-pub async fn summarize_qq_message_via_gpt(group_id: i64) -> String {
+pub async fn summarize_qq_message_via_gpt(group_id: i64, cnt: usize) -> String {
     let mut request_string =
         String::from("以下为一段群聊的聊天记录，请总结主要聊天内容并概括每个人的聊天方式与性格\n");
     let qq_chat_messages = get_qq_message_from_file(group_id);
     request_string = format!(
         "{}{}",
         request_string,
-        transfer_chat_message_to_string(&qq_chat_messages)
+        transfer_chat_message_to_string(&qq_chat_messages, cnt)
     );
     let request_body = transfer_single_string_to_gpt_request_body(request_string);
     crate::web_io::send_message_to_gpt(request_body).await

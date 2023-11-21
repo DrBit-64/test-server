@@ -140,7 +140,12 @@ async fn analyze_message(mut body: HashMap<String, Value>) {
                 .unwrap();
         }
         "!!summarize" => {
-            let messages = summarize_qq_message_via_gpt(group_id).await;
+            let cnt = if args.len() == 0 {
+                50
+            } else {
+                args[0].parse::<usize>().unwrap_or(50)
+            };
+            let messages = summarize_qq_message_via_gpt(group_id, cnt).await;
             send_string_to_group(messages, group_id).await.unwrap();
         }
         _ => {

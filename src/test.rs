@@ -53,6 +53,19 @@ mod tests {
     fn test_clear_gpt_chat_message() {
         clear_gpt_chat_message(0);
     }
+    #[test]
+    fn test_transfer_chat_message_to_string() {
+        let file_path = "./data/dialogue/qq/863770345.json";
+        let data = read_dialogue_data_from_json(file_path);
+        println!("its:\n{}", transfer_chat_message_to_string(&data, 10));
+        let args: Vec<&str> = Vec::new();
+        let cnt = if args.len() == 0 {
+            50
+        } else {
+            args[0].parse::<usize>().unwrap_or(50)
+        };
+        println!("cnt:{}", cnt);
+    }
 }
 #[cfg(test)]
 mod async_tests {
@@ -69,10 +82,5 @@ mod async_tests {
         load_gpt_chat_characters(file_path, 1);
         let message = String::from("你好，请让我摸摸尾巴");
         println!("{}", normal_chat_to_gpt(message, 1).await);
-    }
-    #[test]
-    async fn test_summarize_qq_message_via_gpt() {
-        let message = summarize_qq_message_via_gpt(0).await;
-        println!("{}", message);
     }
 }
